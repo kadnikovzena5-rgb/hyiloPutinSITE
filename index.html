@@ -1,0 +1,927 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>hyiloPutin</title>
+
+    <!-- Подключаем Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-database-compat.js"></script>
+
+    <style>
+        /* ===== RESET ===== */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #ffffff;
+            color: #111111;
+            font-family: 'Courier New', Courier, monospace;
+            line-height: 1.6;
+            padding: 30px 20px;
+        }
+        .container {
+            max-width: 920px;
+            margin: 0 auto;
+        }
+
+        /* ===== TYPOGRAPHY ===== */
+        h1, h2, h3 { font-weight: 400; letter-spacing: -0.02em; }
+        a { color: #111; text-decoration: underline; }
+        hr { border: none; border-top: 2px solid #222; margin: 30px 0; }
+
+        /* ===== HEADER ===== */
+        header {
+            border-bottom: 3px solid #111;
+            padding-bottom: 18px;
+            margin-bottom: 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        .site-title {
+            font-size: 2.2rem;
+            letter-spacing: -0.03em;
+            text-transform: lowercase;
+        }
+        .site-title span {
+            background: #111;
+            color: #fff;
+            padding: 0 8px;
+        }
+        .admin-toggle {
+            background: none;
+            border: 2px solid #111;
+            padding: 6px 20px;
+            font-family: inherit;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: 0.15s;
+            text-transform: lowercase;
+        }
+        .admin-toggle:hover {
+            background: #111;
+            color: #fff;
+        }
+
+        /* ===== LOADING ===== */
+        .loading {
+            text-align: center;
+            padding: 60px 20px;
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        /* ===== EMPTY STATE ===== */
+        .empty-message {
+            text-align: center;
+            padding: 100px 20px;
+            border: 2px dashed #ccc;
+            color: #666;
+            font-size: 1.1rem;
+        }
+
+        /* ===== ARTICLE CARD ===== */
+        .article {
+            border: 2px solid #111;
+            padding: 28px 30px;
+            margin-bottom: 35px;
+            background: #fff;
+        }
+        .article-title {
+            font-size: 1.8rem;
+            font-weight: 400;
+            margin-bottom: 6px;
+            word-break: break-word;
+        }
+        .article-meta {
+            font-size: 0.85rem;
+            color: #555;
+            border-bottom: 1px dashed #ccc;
+            padding-bottom: 14px;
+            margin-bottom: 18px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 18px;
+        }
+        .article-body {
+            white-space: pre-wrap;
+            word-break: break-word;
+            font-size: 0.95rem;
+        }
+        .article-media {
+            margin: 18px 0 12px 0;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        .article-media img {
+            max-width: 100%;
+            max-height: 400px;
+            border: 1px solid #444;
+            object-fit: contain;
+            display: block;
+        }
+        .article-media video {
+            max-width: 100%;
+            max-height: 400px;
+            border: 1px solid #444;
+        }
+        .article-media iframe {
+            max-width: 100%;
+            width: 100%;
+            height: 360px;
+            border: 1px solid #444;
+        }
+
+        /* ===== LIKES ===== */
+        .like-section {
+            margin-top: 20px;
+            padding-top: 16px;
+            border-top: 1px solid #ddd;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        .like-btn {
+            background: none;
+            border: 2px solid #111;
+            padding: 4px 20px;
+            font-family: inherit;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: 0.1s;
+            min-width: 70px;
+            text-align: center;
+        }
+        .like-btn:hover {
+            background: #111;
+            color: #fff;
+        }
+        .like-btn.liked {
+            background: #111;
+            color: #fff;
+        }
+        .like-count {
+            font-size: 0.9rem;
+            color: #333;
+        }
+
+        /* ===== COMMENTS ===== */
+        .comments-section {
+            margin-top: 22px;
+            padding-top: 16px;
+            border-top: 1px solid #ddd;
+        }
+        .comment-item {
+            border-bottom: 1px solid #eee;
+            padding: 12px 0;
+        }
+        .comment-item:last-child {
+            border-bottom: none;
+        }
+        .comment-author {
+            font-weight: 700;
+            font-size: 0.85rem;
+            text-transform: lowercase;
+        }
+        .comment-text {
+            font-size: 0.9rem;
+            margin-top: 2px;
+        }
+        .comment-date {
+            font-size: 0.7rem;
+            color: #777;
+            margin-left: 12px;
+        }
+        .comment-delete {
+            background: none;
+            border: 1px solid #aa4444;
+            color: #aa4444;
+            font-family: inherit;
+            font-size: 0.65rem;
+            padding: 0 10px;
+            cursor: pointer;
+            margin-left: 12px;
+            transition: 0.1s;
+        }
+        .comment-delete:hover {
+            background: #aa4444;
+            color: #fff;
+        }
+
+        .comment-form {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 14px;
+        }
+        .comment-form input,
+        .comment-form textarea {
+            font-family: inherit;
+            border: 2px solid #111;
+            padding: 8px 12px;
+            background: #fff;
+            color: #111;
+            font-size: 0.9rem;
+        }
+        .comment-form input {
+            flex: 1 1 140px;
+        }
+        .comment-form textarea {
+            flex: 1 1 300px;
+            resize: vertical;
+            min-height: 50px;
+        }
+        .comment-form button {
+            background: #111;
+            color: #fff;
+            border: none;
+            padding: 8px 24px;
+            font-family: inherit;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: 0.15s;
+        }
+        .comment-form button:hover {
+            background: #333;
+        }
+
+        /* ===== ADMIN PANEL ===== */
+        .admin-panel {
+            display: none;
+            border: 3px solid #111;
+            padding: 30px 32px;
+            margin-top: 40px;
+            background: #f8f8f8;
+        }
+        .admin-panel.visible {
+            display: block;
+        }
+        .admin-panel h2 {
+            font-size: 1.6rem;
+            margin-bottom: 20px;
+            text-transform: lowercase;
+            letter-spacing: -0.02em;
+        }
+        .admin-panel label {
+            display: block;
+            font-size: 0.85rem;
+            text-transform: lowercase;
+            margin: 14px 0 4px 0;
+            font-weight: 700;
+        }
+        .admin-panel input,
+        .admin-panel textarea {
+            width: 100%;
+            font-family: inherit;
+            border: 2px solid #111;
+            padding: 10px 14px;
+            background: #fff;
+            font-size: 0.95rem;
+            color: #111;
+        }
+        .admin-panel textarea {
+            min-height: 140px;
+            resize: vertical;
+        }
+        .admin-panel .row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+        .admin-panel .row > div {
+            flex: 1 1 200px;
+        }
+        .admin-panel .media-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin: 6px 0;
+        }
+        .admin-panel .media-group input {
+            flex: 1 1 140px;
+        }
+        .publish-btn {
+            background: #111;
+            color: #fff;
+            border: none;
+            padding: 14px 0;
+            font-family: inherit;
+            font-size: 1.1rem;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 24px;
+            transition: 0.15s;
+            text-transform: lowercase;
+        }
+        .publish-btn:hover {
+            background: #333;
+        }
+        .logout-btn {
+            background: none;
+            border: 2px solid #111;
+            padding: 6px 24px;
+            font-family: inherit;
+            font-size: 0.85rem;
+            cursor: pointer;
+            margin-top: 14px;
+            transition: 0.1s;
+        }
+        .logout-btn:hover {
+            background: #111;
+            color: #fff;
+        }
+
+        /* ===== LOGIN OVERLAY ===== */
+        .login-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.85);
+            justify-content: center;
+            align-items: center;
+            z-index: 999;
+        }
+        .login-overlay.visible {
+            display: flex;
+        }
+        .login-box {
+            background: #fff;
+            padding: 40px 45px;
+            border: 4px solid #111;
+            width: 380px;
+            max-width: 95%;
+        }
+        .login-box h3 {
+            font-size: 1.6rem;
+            font-weight: 400;
+            margin-bottom: 20px;
+            text-transform: lowercase;
+        }
+        .login-box input {
+            width: 100%;
+            font-family: inherit;
+            border: 2px solid #111;
+            padding: 12px 16px;
+            font-size: 1rem;
+            background: #fff;
+            margin-bottom: 18px;
+        }
+        .login-box button {
+            background: #111;
+            color: #fff;
+            border: none;
+            padding: 12px;
+            width: 100%;
+            font-family: inherit;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: 0.15s;
+        }
+        .login-box button:hover {
+            background: #333;
+        }
+        .login-error {
+            color: #aa3333;
+            font-size: 0.85rem;
+            margin-top: 10px;
+        }
+
+        /* ===== DELETE ARTICLE (admin) ===== */
+        .del-article-btn {
+            background: none;
+            border: 1px solid #aa4444;
+            color: #aa4444;
+            font-family: inherit;
+            font-size: 0.7rem;
+            padding: 2px 14px;
+            cursor: pointer;
+            margin-top: 16px;
+            transition: 0.1s;
+            text-transform: lowercase;
+        }
+        .del-article-btn:hover {
+            background: #aa4444;
+            color: #fff;
+        }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 600px) {
+            body { padding: 16px 12px; }
+            .article { padding: 18px 16px; }
+            .admin-panel { padding: 18px 16px; }
+            .login-box { padding: 30px 20px; }
+            .site-title { font-size: 1.6rem; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+
+    <!-- HEADER -->
+    <header>
+        <div class="site-title"><span>hyilo</span>Putin</div>
+        <button class="admin-toggle" id="adminToggleBtn">admin</button>
+    </header>
+
+    <!-- PUBLIC FEED -->
+    <div id="feedContainer">
+        <div class="loading">загрузка...</div>
+    </div>
+
+    <!-- ADMIN PANEL -->
+    <div id="adminPanel" class="admin-panel">
+        <h2>| редактор</h2>
+
+        <label>заголовок</label>
+        <input type="text" id="articleTitle" placeholder="введите заголовок">
+
+        <div class="row">
+            <div>
+                <label>дата (опционально)</label>
+                <input type="text" id="articleDate" placeholder="дд.мм.гггг">
+            </div>
+            <div>
+                <label>теги (через запятую)</label>
+                <input type="text" id="articleTags" placeholder="тег1, тег2">
+            </div>
+        </div>
+
+        <label>текст статьи</label>
+        <textarea id="articleBody" placeholder="полный текст..."></textarea>
+
+        <label>фото (прямые ссылки, до 5 штук, каждая с новой строки)</label>
+        <textarea id="photoUrls" rows="3" placeholder="https://example.com/photo1.jpg&#10;https://example.com/photo2.png"></textarea>
+
+        <label>видео (ссылка YouTube / Vimeo / прямой MP4)</label>
+        <input type="text" id="videoUrl" placeholder="https://www.youtube.com/watch?v=...">
+
+        <button class="publish-btn" id="publishBtn">опубликовать</button>
+        <button class="logout-btn" id="logoutBtn">выйти из админки</button>
+    </div>
+
+    <!-- LOGIN OVERLAY -->
+    <div id="loginOverlay" class="login-overlay">
+        <div class="login-box">
+            <h3>| доступ</h3>
+            <input type="password" id="passwordInput" placeholder="пароль">
+            <button id="loginBtn">войти</button>
+            <div id="loginError" class="login-error"></div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    // ============================================================
+    // 1. КОНФИГУРАЦИЯ FIREBASE (скопировано из вашего проекта)
+    // ============================================================
+    const firebaseConfig = {
+        apiKey: "AIzaSyAUHnXJ8QOZcadoOrqYdaGgqYSZJSb1Zqk",
+        authDomain: "hyiloputin-d2217.firebaseapp.com",
+        projectId: "hyiloputin-d2217",
+        storageBucket: "hyiloputin-d2217.firebasestorage.app",
+        messagingSenderId: "778443791482",
+        appId: "1:778443791482:web:69cad7a0808a2dca6e6fc3"
+    };
+    // ============================================================
+
+    // Инициализируем Firebase
+    firebase.initializeApp(firebaseConfig);
+    const database = firebase.database();
+    const articlesRef = database.ref('articles');
+
+    // ===== КОНФИГ =====
+    const ADMIN_PASSWORD = 'poapapQPVMhyilo2026';
+
+    // ===== СОСТОЯНИЕ =====
+    let articles = [];
+    let isAdmin = false;
+    let isLoading = true;
+
+    // ===== DOM REFS =====
+    const feed = document.getElementById('feedContainer');
+    const adminPanel = document.getElementById('adminPanel');
+    const adminToggle = document.getElementById('adminToggleBtn');
+    const loginOverlay = document.getElementById('loginOverlay');
+    const passwordInput = document.getElementById('passwordInput');
+    const loginBtn = document.getElementById('loginBtn');
+    const loginError = document.getElementById('loginError');
+    const logoutBtn = document.getElementById('logoutBtn');
+    const publishBtn = document.getElementById('publishBtn');
+
+    const titleInp = document.getElementById('articleTitle');
+    const dateInp = document.getElementById('articleDate');
+    const tagsInp = document.getElementById('articleTags');
+    const bodyInp = document.getElementById('articleBody');
+    const photoInp = document.getElementById('photoUrls');
+    const videoInp = document.getElementById('videoUrl');
+
+    // ===== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ =====
+    function genId() { return Date.now() + '_' + Math.random().toString(36).slice(2,8); }
+
+    function getVideoEmbed(url) {
+        if (!url) return null;
+        let m = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([\w-]+)/);
+        if (m) return 'https://www.youtube.com/embed/' + m[1];
+        m = url.match(/vimeo\.com\/(\d+)/);
+        if (m) return 'https://player.vimeo.com/video/' + m[1];
+        if (url.match(/\.(mp4|webm|ogg)$/i)) return url;
+        if (url.startsWith('http')) return url;
+        return null;
+    }
+
+    function getSessionId() {
+        let s = localStorage.getItem('hyiloSessionId');
+        if (!s) {
+            s = 'user_' + Date.now() + '_' + Math.random().toString(36).slice(2,8);
+            localStorage.setItem('hyiloSessionId', s);
+        }
+        return s;
+    }
+
+    // ===== ЗАГРУЗКА ДАННЫХ ИЗ FIREBASE =====
+    function loadArticles() {
+        isLoading = true;
+        feed.innerHTML = '<div class="loading">загрузка...</div>';
+
+        articlesRef.on('value', (snapshot) => {
+            const data = snapshot.val();
+            if (data) {
+                articles = Object.values(data);
+                articles = articles.map(a => ({
+                    ...a,
+                    id: a.id || genId(),
+                    comments: a.comments || [],
+                    likes: a.likes || 0,
+                    likedBy: a.likedBy || []
+                }));
+            } else {
+                articles = [];
+            }
+            isLoading = false;
+            renderFeed();
+        }, (error) => {
+            console.error('Ошибка загрузки:', error);
+            feed.innerHTML = '<div class="empty-message">ошибка подключения к базе данных</div>';
+            isLoading = false;
+        });
+    }
+
+    // ===== СОХРАНЕНИЕ В FIREBASE =====
+    function saveArticles() {
+        const data = {};
+        for (const art of articles) {
+            data[art.id] = art;
+        }
+        articlesRef.set(data).catch(err => {
+            console.error('Ошибка сохранения:', err);
+            alert('Не удалось сохранить в Firebase. Проверьте интернет и настройки.');
+        });
+    }
+
+    // ===== РЕНДЕР ЛЕНТЫ =====
+    function renderFeed() {
+        if (isLoading) return;
+
+        feed.innerHTML = '';
+        if (articles.length === 0) {
+            const empty = document.createElement('div');
+            empty.className = 'empty-message';
+            empty.textContent = 'нет статей. войдите как администратор.';
+            feed.appendChild(empty);
+            return;
+        }
+
+        const sorted = [...articles].sort((a,b) => (b.id || 0) - (a.id || 0));
+
+        for (const art of sorted) {
+            const div = document.createElement('div');
+            div.className = 'article';
+
+            const h2 = document.createElement('h2');
+            h2.className = 'article-title';
+            h2.textContent = art.title || 'без заголовка';
+            div.appendChild(h2);
+
+            const meta = document.createElement('div');
+            meta.className = 'article-meta';
+            if (art.date) {
+                const d = document.createElement('span');
+                d.textContent = art.date;
+                meta.appendChild(d);
+            }
+            if (art.tags && art.tags.length) {
+                const t = document.createElement('span');
+                t.textContent = '# ' + art.tags.join(' #');
+                meta.appendChild(t);
+            }
+            div.appendChild(meta);
+
+            const body = document.createElement('div');
+            body.className = 'article-body';
+            body.textContent = art.body || '';
+            div.appendChild(body);
+
+            if (art.photos && art.photos.length) {
+                const mediaDiv = document.createElement('div');
+                mediaDiv.className = 'article-media';
+                for (const p of art.photos) {
+                    if (p.trim()) {
+                        const img = document.createElement('img');
+                        img.src = p.trim();
+                        img.alt = 'photo';
+                        mediaDiv.appendChild(img);
+                    }
+                }
+                div.appendChild(mediaDiv);
+            }
+
+            if (art.videoEmbed) {
+                const mediaDiv = document.createElement('div');
+                mediaDiv.className = 'article-media';
+                if (art.videoEmbed.match(/\.(mp4|webm|ogg)$/i)) {
+                    const vid = document.createElement('video');
+                    vid.src = art.videoEmbed;
+                    vid.controls = true;
+                    vid.preload = 'metadata';
+                    mediaDiv.appendChild(vid);
+                } else {
+                    const iframe = document.createElement('iframe');
+                    iframe.src = art.videoEmbed;
+                    iframe.allow = 'autoplay; encrypted-media';
+                    iframe.allowFullscreen = true;
+                    mediaDiv.appendChild(iframe);
+                }
+                div.appendChild(mediaDiv);
+            }
+
+            const likeSection = document.createElement('div');
+            likeSection.className = 'like-section';
+
+            const likeBtn = document.createElement('button');
+            likeBtn.className = 'like-btn';
+            const session = getSessionId();
+            if (art.likedBy && art.likedBy.includes(session)) {
+                likeBtn.classList.add('liked');
+                likeBtn.textContent = '✔ like';
+            } else {
+                likeBtn.textContent = 'like';
+            }
+            likeBtn.dataset.articleId = art.id;
+
+            const likeCount = document.createElement('span');
+            likeCount.className = 'like-count';
+            likeCount.textContent = (art.likes || 0) + '';
+
+            likeBtn.addEventListener('click', function() {
+                const id = this.dataset.articleId;
+                const article = articles.find(a => a.id === id);
+                if (!article) return;
+                const sess = getSessionId();
+                if (!article.likedBy) article.likedBy = [];
+                if (article.likedBy.includes(sess)) {
+                    article.likedBy = article.likedBy.filter(s => s !== sess);
+                    article.likes = Math.max(0, (article.likes || 0) - 1);
+                } else {
+                    article.likedBy.push(sess);
+                    article.likes = (article.likes || 0) + 1;
+                }
+                saveArticles();
+                renderFeed();
+            });
+
+            likeSection.appendChild(likeBtn);
+            likeSection.appendChild(likeCount);
+            div.appendChild(likeSection);
+
+            const commentsDiv = document.createElement('div');
+            commentsDiv.className = 'comments-section';
+
+            const comms = art.comments || [];
+            for (const c of comms) {
+                const citem = document.createElement('div');
+                citem.className = 'comment-item';
+                const authorSpan = document.createElement('span');
+                authorSpan.className = 'comment-author';
+                authorSpan.textContent = (c.author || 'anon') + ':';
+                citem.appendChild(authorSpan);
+
+                const textSpan = document.createElement('span');
+                textSpan.className = 'comment-text';
+                textSpan.textContent = ' ' + (c.text || '');
+                citem.appendChild(textSpan);
+
+                const dateSpan = document.createElement('span');
+                dateSpan.className = 'comment-date';
+                dateSpan.textContent = c.date || '';
+                citem.appendChild(dateSpan);
+
+                if (isAdmin) {
+                    const delBtn = document.createElement('button');
+                    delBtn.className = 'comment-delete';
+                    delBtn.textContent = 'удалить';
+                    delBtn.dataset.articleId = art.id;
+                    delBtn.dataset.commentId = c.id;
+                    delBtn.addEventListener('click', function() {
+                        const aId = this.dataset.articleId;
+                        const cId = this.dataset.commentId;
+                        const article = articles.find(a => a.id === aId);
+                        if (!article) return;
+                        article.comments = (article.comments || []).filter(c => c.id !== cId);
+                        saveArticles();
+                        renderFeed();
+                    });
+                    citem.appendChild(delBtn);
+                }
+
+                commentsDiv.appendChild(citem);
+            }
+
+            const form = document.createElement('div');
+            form.className = 'comment-form';
+            const nameInput = document.createElement('input');
+            nameInput.type = 'text';
+            nameInput.placeholder = 'имя (опционально)';
+            nameInput.dataset.articleId = art.id;
+            const textInput = document.createElement('textarea');
+            textInput.placeholder = 'ваш комментарий...';
+            textInput.dataset.articleId = art.id;
+            const submitBtn = document.createElement('button');
+            submitBtn.textContent = 'отправить';
+            submitBtn.dataset.articleId = art.id;
+
+            submitBtn.addEventListener('click', function() {
+                const aId = this.dataset.articleId;
+                const article = articles.find(a => a.id === aId);
+                if (!article) return;
+                const nameField = document.querySelector('input[data-article-id="' + aId + '"]');
+                const textField = document.querySelector('textarea[data-article-id="' + aId + '"]');
+                const name = nameField ? nameField.value.trim() : '';
+                const text = textField ? textField.value.trim() : '';
+                if (!text) return;
+                if (!article.comments) article.comments = [];
+                article.comments.push({
+                    id: genId(),
+                    author: name || 'anon',
+                    text: text,
+                    date: new Date().toLocaleDateString('ru-RU') + ' ' + new Date().toLocaleTimeString('ru-RU', {hour:'2-digit',minute:'2-digit'})
+                });
+                saveArticles();
+                renderFeed();
+            });
+
+            form.appendChild(nameInput);
+            form.appendChild(textInput);
+            form.appendChild(submitBtn);
+            commentsDiv.appendChild(form);
+
+            div.appendChild(commentsDiv);
+
+            if (isAdmin) {
+                const delArt = document.createElement('button');
+                delArt.className = 'del-article-btn';
+                delArt.textContent = 'удалить статью';
+                delArt.dataset.articleId = art.id;
+                delArt.addEventListener('click', function() {
+                    const aId = this.dataset.articleId;
+                    if (confirm('удалить статью?')) {
+                        articles = articles.filter(a => a.id !== aId);
+                        saveArticles();
+                        renderFeed();
+                    }
+                });
+                div.appendChild(delArt);
+            }
+
+            feed.appendChild(div);
+        }
+    }
+
+    // ===== ADMIN UI =====
+    function updateAdminUI() {
+        if (isAdmin) {
+            adminPanel.classList.add('visible');
+            adminToggle.textContent = 'admin (выйти)';
+            loginOverlay.classList.remove('visible');
+        } else {
+            adminPanel.classList.remove('visible');
+            adminToggle.textContent = 'admin';
+        }
+        renderFeed();
+    }
+
+    // ===== LOGIN / LOGOUT =====
+    function login(password) {
+        if (password === ADMIN_PASSWORD) {
+            isAdmin = true;
+            loginError.textContent = '';
+            passwordInput.value = '';
+            loginOverlay.classList.remove('visible');
+            updateAdminUI();
+        } else {
+            loginError.textContent = 'неверный пароль';
+            passwordInput.value = '';
+            passwordInput.focus();
+        }
+    }
+
+    function logout() {
+        isAdmin = false;
+        updateAdminUI();
+        loginOverlay.classList.remove('visible');
+    }
+
+    // ===== PUBLISH =====
+    function publish() {
+        if (!isAdmin) {
+            alert('вы не авторизованы');
+            return;
+        }
+        const title = titleInp.value.trim();
+        const body = bodyInp.value.trim();
+        if (!title || !body) {
+            alert('заголовок и текст обязательны');
+            return;
+        }
+        const date = dateInp.value.trim() || new Date().toLocaleDateString('ru-RU');
+        const tagsRaw = tagsInp.value.trim();
+        const tags = tagsRaw ? tagsRaw.split(',').map(s => s.trim()).filter(s => s) : [];
+        const photosRaw = photoInp.value.trim();
+        const photos = photosRaw ? photosRaw.split('\n').map(s => s.trim()).filter(s => s).slice(0,5) : [];
+        const videoRaw = videoInp.value.trim();
+        let videoEmbed = null;
+        if (videoRaw) {
+            videoEmbed = getVideoEmbed(videoRaw);
+        }
+
+        const newArt = {
+            id: genId(),
+            title: title,
+            date: date,
+            tags: tags,
+            body: body,
+            photos: photos,
+            videoEmbed: videoEmbed,
+            likes: 0,
+            likedBy: [],
+            comments: []
+        };
+
+        articles.push(newArt);
+        saveArticles();
+
+        titleInp.value = '';
+        dateInp.value = '';
+        tagsInp.value = '';
+        bodyInp.value = '';
+        photoInp.value = '';
+        videoInp.value = '';
+
+        renderFeed();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // ===== EVENTS =====
+    adminToggle.addEventListener('click', function() {
+        if (isAdmin) {
+            logout();
+        } else {
+            loginOverlay.classList.add('visible');
+            passwordInput.value = '';
+            loginError.textContent = '';
+            passwordInput.focus();
+        }
+    });
+
+    loginBtn.addEventListener('click', function() {
+        login(passwordInput.value);
+    });
+
+    passwordInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') login(passwordInput.value);
+    });
+
+    loginOverlay.addEventListener('click', function(e) {
+        if (e.target === loginOverlay) loginOverlay.classList.remove('visible');
+    });
+
+    logoutBtn.addEventListener('click', logout);
+    publishBtn.addEventListener('click', publish);
+
+    // ===== ЗАПУСК =====
+    isAdmin = false;
+    updateAdminUI();
+    loadArticles();
+
+    console.log('hyiloPutin с Firebase. Пароль: poapapQPVMhyilo2026');
+</script>
+
+</body>
+</html>
